@@ -47,52 +47,16 @@ def main():
     #evader
     evader_body = pymunk.Body(body_type=pymunk.Body.STATIC)
     evader_body.position = 300, 50
-    ex = evader_body.position.x
-    ey = evader_body.position.y
     evader_shape = pymunk.Circle(evader_body, 10, (0, 0))
     evader_shape.collision_type = COLLTYPE_EVADE
-    space.add(evader_body, evader_shape)
+    # space.add(evader_body, evader_shape)
 
     def pre_solve(arb, space, data):
-        # s = arb.shapes[0]
-        # space.remove(s.body, s)
-        # print(arb.contact_point_set)
         print('gameover')
         return True
 
     space.add_collision_handler(COLLTYPE_BALL, COLLTYPE_EVADE).pre_solve = \
         pre_solve
-
-    # RAYCASTING
-    # create line segments that extend from the evader
-    # make custom collision handlers between segments and balls
-
-    ray_center = pymunk.Body(body_type=pymunk.Body.STATIC)
-    ray_center.position = ex, ey
-
-    r1 = pymunk.Segment(space.static_body, (ex, ey), (ex, ey + 200), 1)
-    r1.collision_type = COLLTYPE_RAY
-    r2 = pymunk.Segment(space.static_body, (ex, ey), (ex + 20, ey + 190), 1)
-    r2.collision_type = COLLTYPE_RAY
-    r3 = pymunk.Segment(space.static_body, (ex, ey), (ex - 20, ey + 190), 1)
-    r3.collision_type = COLLTYPE_RAY
-    r4 = pymunk.Segment(space.static_body, (ex, ey), (ex + 40, ey + 175), 1)
-    r4.collision_type = COLLTYPE_RAY
-    r5 = pymunk.Segment(space.static_body, (ex, ey), (ex - 40, ey + 175), 1)
-    r5.collision_type = COLLTYPE_RAY
-
-
-    raycasts = [r1, r2, r3, r4, r5]
-
-    for rays in raycasts:
-        space.add(rays)
-
-    def ray(arb, space, data):
-        print('hit @')
-        print(arb.contact_point_set)
-        return False
-
-    space.add_collision_handler(COLLTYPE_BALL, COLLTYPE_RAY).pre_solve = ray
 
     evaders = []
     run_physics = True
@@ -139,18 +103,47 @@ def main():
             space.add(body, shape)
             balls.append(shape)
 
-        # if i == 0:
-        #     body = pymunk.Body(10, 10)
-        #     body.position = 300, 580
-        #     shape = pymunk.Circle(body, 30, (0, 0))
-        #     shape.collision_type
+        # TODO by AI
+        # update evader_body.position
+        # evader_body.position = ???
 
+        # RAYCASTING
+        # create line segments that extend from the evader
+        # make custom collision handlers between segments and balls
+
+        ex = evader_body.position.x
+        ey = evader_body.position.y
+
+        r1 = space.segment_query_first((ex, ey + 11), (ex, ey + 200), 1, pymunk.ShapeFilter())
+        r2 = space.segment_query_first((ex, ey), (ex + 20, ey + 190), 1, pymunk.ShapeFilter())
+        r3 = space.segment_query_first((ex, ey), (ex - 20, ey + 190), 1, pymunk.ShapeFilter())
+        r4 = space.segment_query_first((ex, ey), (ex + 40, ey + 175), 1, pymunk.ShapeFilter())
+        r5 = space.segment_query_first((ex, ey), (ex - 40, ey + 175), 1, pymunk.ShapeFilter())
+
+        raycasts = [r1, r2, r3, r4, r5]
+
+        for ray in raycasts:
+            if ray is not None:
+                contact = ray.point
+                # print(ray.shape, ray.shape.body)
+                # line = pymunk.Segment(space.static_body, (0, 0), contact, 1)
+                # line.body.position = ex, ey
+                # print("hit")
+                # print(contact)
+                p1 = int(ex), int(flipy(ey))
+                p2 = int(contact.x), int(flipy(contact.y))
+                print(p1, p2)
+                pygame.draw.line(screen, THECOLORS["green"], p1, p2)
+                pygame.draw.circle(screen, THECOLORS["green"], p2, 5, 2)
+
+
+
+            # space.add(ray)
 
         ### Update physics
         if run_physics:
             dt = 1.0 / 60.0
-            for x in range(1):
-                space.step(dt)
+            space.step(dt)
 
         ### Draw stuff
         screen.fill(THECOLORS["white"])
@@ -173,13 +166,7 @@ def main():
         ep = int(evader_shape.body.position.x), int(flipy(evader_shape.body.position.y))
         pygame.draw.circle(screen, THECOLORS["purple"], ep, int(er), 2)
 
-        for ray in raycasts:
-            r = int(ray.radius)
-            p1 = int(ray.a.x), int(flipy(ray.a.y))
-            p2 = int(ray.b.x), int(flipy(ray.b.y))
-            pygame.draw.line(screen, THECOLORS["green"], p1, p2, r)
-
-        ### Flip screen
+        # Flip screen
         pygame.display.flip()
         clock.tick(50)
         pygame.display.set_caption("fps: " + str(clock.get_fps()))

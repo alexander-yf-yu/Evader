@@ -19,6 +19,7 @@ COLLTYPE_BOUNDS = 0
 COLLTYPE_BALL = 1
 COLLTYPE_EVADE = 2
 COLLTYPE_RAY = 3
+RAYCAST_PADDING = 5
 
 
 def flipy(y):
@@ -51,7 +52,7 @@ def main():
     evader_body.position = 300, 50
     evader_shape = pymunk.Circle(evader_body, EVADER_DIAMETER, (0, 0))
     evader_shape.collision_type = COLLTYPE_EVADE
-    # space.add(evader_body, evader_shape)
+    space.add(evader_body, evader_shape)
 
     def pre_solve(arb, space, data):
         print('gameover')
@@ -72,6 +73,11 @@ def main():
                 running = False
             elif event.type == KEYDOWN and event.key == K_p:
                 pygame.image.save(screen, "balls_and_lines.png")
+            elif event.type == KEYDOWN and event.key == K_RIGHT:
+                print(evader_body.is_sleeping)
+                evader_body.position = evader_body.position.x + 5, evader_body.position.y
+            elif event.type == KEYDOWN and event.key == K_LEFT:
+                evader_body.position = evader_body.position.x - 5, evader_body.position.y
             elif event.type == MOUSEBUTTONDOWN and event.button == 1:
                 p = event.pos[X], flipy(event.pos[Y])
                 body = pymunk.Body(10, 100)
@@ -125,11 +131,11 @@ def main():
         ex = evader_body.position.x
         ey = evader_body.position.y
 
-        r1 = space.segment_query_first((ex, ey + EVADER_DIAMETER), (ex, ey + 200), 1, pymunk.ShapeFilter())
-        r2 = space.segment_query_first((ex, ey + EVADER_DIAMETER), (ex + 20, ey + 190), 1, pymunk.ShapeFilter())
-        r3 = space.segment_query_first((ex, ey + EVADER_DIAMETER), (ex - 20, ey + 190), 1, pymunk.ShapeFilter())
-        r4 = space.segment_query_first((ex, ey + EVADER_DIAMETER), (ex + 40, ey + 175), 1, pymunk.ShapeFilter())
-        r5 = space.segment_query_first((ex, ey + EVADER_DIAMETER), (ex - 40, ey + 175), 1, pymunk.ShapeFilter())
+        r1 = space.segment_query_first((ex, ey + EVADER_DIAMETER + RAYCAST_PADDING), (ex, ey + 200), 1, pymunk.ShapeFilter())
+        r2 = space.segment_query_first((ex, ey + EVADER_DIAMETER + RAYCAST_PADDING), (ex + 20, ey + 190), 1, pymunk.ShapeFilter())
+        r3 = space.segment_query_first((ex, ey + EVADER_DIAMETER + RAYCAST_PADDING), (ex - 20, ey + 190), 1, pymunk.ShapeFilter())
+        r4 = space.segment_query_first((ex, ey + EVADER_DIAMETER + RAYCAST_PADDING), (ex + 40, ey + 175), 1, pymunk.ShapeFilter())
+        r5 = space.segment_query_first((ex, ey + EVADER_DIAMETER + RAYCAST_PADDING), (ex - 40, ey + 175), 1, pymunk.ShapeFilter())
 
         raycasts = [r1, r2, r3, r4, r5]
 
@@ -141,7 +147,7 @@ def main():
                 # line.body.position = ex, ey
                 # print("hit")
                 # print(contact)
-                p1 = int(ex), int(flipy(ey))
+                p1 = int(ex), int(flipy(ey) - EVADER_DIAMETER - RAYCAST_PADDING)
                 p2 = int(contact.x), int(flipy(contact.y))
                 print(p1, p2)
                 pygame.draw.line(screen, THECOLORS["green"], p1, p2, 1)

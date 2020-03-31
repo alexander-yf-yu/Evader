@@ -12,6 +12,8 @@ import pymunk
 from pymunk import Vec2d
 
 X, Y = 0, 1
+
+EVADER_DIAMETER = 10
 ### Physics collision types
 COLLTYPE_BOUNDS = 0
 COLLTYPE_BALL = 1
@@ -47,7 +49,7 @@ def main():
     #evader
     evader_body = pymunk.Body(body_type=pymunk.Body.STATIC)
     evader_body.position = 300, 50
-    evader_shape = pymunk.Circle(evader_body, 10, (0, 0))
+    evader_shape = pymunk.Circle(evader_body, EVADER_DIAMETER, (0, 0))
     evader_shape.collision_type = COLLTYPE_EVADE
     # space.add(evader_body, evader_shape)
 
@@ -107,6 +109,15 @@ def main():
         # update evader_body.position
         # evader_body.position = ???
 
+        ### Update physics
+        if run_physics:
+            dt = 1.0 / 60.0
+            space.step(dt)
+
+
+        ### Draw stuff
+        screen.fill(THECOLORS["white"])
+
         # RAYCASTING
         # create line segments that extend from the evader
         # make custom collision handlers between segments and balls
@@ -114,11 +125,11 @@ def main():
         ex = evader_body.position.x
         ey = evader_body.position.y
 
-        r1 = space.segment_query_first((ex, ey + 11), (ex, ey + 200), 1, pymunk.ShapeFilter())
-        r2 = space.segment_query_first((ex, ey), (ex + 20, ey + 190), 1, pymunk.ShapeFilter())
-        r3 = space.segment_query_first((ex, ey), (ex - 20, ey + 190), 1, pymunk.ShapeFilter())
-        r4 = space.segment_query_first((ex, ey), (ex + 40, ey + 175), 1, pymunk.ShapeFilter())
-        r5 = space.segment_query_first((ex, ey), (ex - 40, ey + 175), 1, pymunk.ShapeFilter())
+        r1 = space.segment_query_first((ex, ey + EVADER_DIAMETER), (ex, ey + 200), 1, pymunk.ShapeFilter())
+        r2 = space.segment_query_first((ex, ey + EVADER_DIAMETER), (ex + 20, ey + 190), 1, pymunk.ShapeFilter())
+        r3 = space.segment_query_first((ex, ey + EVADER_DIAMETER), (ex - 20, ey + 190), 1, pymunk.ShapeFilter())
+        r4 = space.segment_query_first((ex, ey + EVADER_DIAMETER), (ex + 40, ey + 175), 1, pymunk.ShapeFilter())
+        r5 = space.segment_query_first((ex, ey + EVADER_DIAMETER), (ex - 40, ey + 175), 1, pymunk.ShapeFilter())
 
         raycasts = [r1, r2, r3, r4, r5]
 
@@ -133,20 +144,10 @@ def main():
                 p1 = int(ex), int(flipy(ey))
                 p2 = int(contact.x), int(flipy(contact.y))
                 print(p1, p2)
-                pygame.draw.line(screen, THECOLORS["green"], p1, p2)
-                pygame.draw.circle(screen, THECOLORS["green"], p2, 5, 2)
-
-
-
-            # space.add(ray)
-
-        ### Update physics
-        if run_physics:
-            dt = 1.0 / 60.0
-            space.step(dt)
-
-        ### Draw stuff
-        screen.fill(THECOLORS["white"])
+                pygame.draw.line(screen, THECOLORS["green"], p1, p2, 1)
+            else:
+                # print("None")
+                pass
 
         for ball in balls[:]:
             v = ball.body.position

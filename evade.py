@@ -70,15 +70,15 @@ def main():
     ray_center = pymunk.Body(body_type=pymunk.Body.STATIC)
     ray_center.position = ex, ey
 
-    r1 = pymunk.Segment(ray_center, (ex, ey), (ex, ey + 200), 1)
+    r1 = pymunk.Segment(space.static_body, (ex, ey), (ex, ey + 200), 1)
     r1.collision_type = COLLTYPE_RAY
-    r2 = pymunk.Segment(ray_center, (ex, ey), (ex + 20, ey + 190), 1)
+    r2 = pymunk.Segment(space.static_body, (ex, ey), (ex + 20, ey + 190), 1)
     r2.collision_type = COLLTYPE_RAY
-    r3 = pymunk.Segment(ray_center, (ex, ey), (ex - 20, ey + 190), 1)
+    r3 = pymunk.Segment(space.static_body, (ex, ey), (ex - 20, ey + 190), 1)
     r3.collision_type = COLLTYPE_RAY
-    r4 = pymunk.Segment(ray_center, (ex, ey), (ex + 40, ey + 175), 1)
+    r4 = pymunk.Segment(space.static_body, (ex, ey), (ex + 40, ey + 175), 1)
     r4.collision_type = COLLTYPE_RAY
-    r5 = pymunk.Segment(ray_center, (ex, ey), (ex - 40, ey + 175), 1)
+    r5 = pymunk.Segment(space.static_body, (ex, ey), (ex - 40, ey + 175), 1)
     r5.collision_type = COLLTYPE_RAY
 
 
@@ -88,12 +88,9 @@ def main():
         space.add(rays)
 
     def ray(arb, space, data):
-        r = arb.shapes[1]
-        print(r.body.position.x)
-        print(r.body.position.y)
-        # print('hit @')
-        # print(arb.contact_point_set)
-        return True
+        print('hit @')
+        print(arb.contact_point_set)
+        return False
 
     space.add_collision_handler(COLLTYPE_BALL, COLLTYPE_RAY).pre_solve = ray
 

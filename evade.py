@@ -48,7 +48,7 @@ def main():
     balls = []
 
     #evader
-    evader_body = pymunk.Body(body_type=pymunk.Body.STATIC)
+    evader_body = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
     evader_body.position = 300, 50
     evader_shape = pymunk.Circle(evader_body, EVADER_DIAMETER, (0, 0))
     evader_shape.collision_type = COLLTYPE_EVADE

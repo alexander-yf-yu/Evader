@@ -23,6 +23,7 @@ COLLTYPE_BOUNDS = 0
 COLLTYPE_BALL = 1
 COLLTYPE_EVADE = 2
 COLLTYPE_RAY = 3
+COLLTYPE_WALL = 4
 RAYCAST_PADDING = 5
 BALL_DIAMETER = 15
 BALL_EVERY = 20
@@ -50,6 +51,16 @@ def main():
     space.gravity = 0.0, GRAVITY
     space.damping = 0.8
 
+    # Walls
+    static = [
+        pymunk.Segment(space.static_body, (0, 0), (0, WINDOW_HEIGHT), 0),
+        pymunk.Segment(space.static_body, (WINDOW_WIDTH, 0), (WINDOW_WIDTH, WINDOW_HEIGHT), 0),
+    ]
+
+    for s in static:
+        s.collision_type = COLLTYPE_WALL
+    space.add(static)
+
     ## Balls
     balls = []
 
@@ -65,6 +76,9 @@ def main():
         return True
 
     space.add_collision_handler(COLLTYPE_BALL, COLLTYPE_EVADE).pre_solve = \
+        pre_solve
+
+    space.add_collision_handler(COLLTYPE_EVADE, COLLTYPE_WALL).pre_solve = \
         pre_solve
 
     evaders = []
@@ -110,7 +124,7 @@ def main():
         ## generate random balls
         if i % BALL_EVERY == 0:
             body = pymunk.Body(10, 10)
-            x = random.randint(10, WINDOW_WIDTH - 10)
+            x = random.randint(10, WINDOW_WIDTH - BALL_DIAMETER)
             body.position = x, WINDOW_HEIGHT - 20
             shape = pymunk.Circle(body, BALL_DIAMETER, (0, 0))
             shape.collision_type = COLLTYPE_BALL
@@ -152,6 +166,7 @@ def main():
                 p1 = int(ex), int(flipy(ey) - EVADER_DIAMETER - RAYCAST_PADDING)
                 p2 = int(contact.x), int(flipy(contact.y))
                 print(p1, p2)
+                # print("LOOP", id(ray.shape))
                 pygame.draw.line(screen, THECOLORS["green"], p1, p2, 1)
             else:
                 # print("None")
@@ -183,7 +198,6 @@ def main():
         clock.tick(50)
         pygame.display.set_caption("fps: " + str(clock.get_fps()))
 
-        # print(i)
         i += 1
 
 if __name__ == '__main__':

@@ -19,6 +19,8 @@ GRAVITY = -250.00
 
 EVADER_DIAMETER = 10
 EVADER_SPEED = 30
+EVADER_MOVE_MAG = 5
+
 ### Physics collision types
 COLLTYPE_BOUNDS = 0
 COLLTYPE_BALL = 1
@@ -95,9 +97,9 @@ def main():
             elif event.type == KEYDOWN and event.key == K_p:
                 pygame.image.save(screen, "balls_and_lines.png")
             elif event.type == KEYDOWN and event.key == K_RIGHT:
-                evader_body.velocity = evader_body.velocity.x + EVADER_SPEED, evader_body.velocity.y
+                evader_body.position = evader_body.position.x + EVADER_MOVE_MAG, evader_body.position.y
             elif event.type == KEYDOWN and event.key == K_LEFT:
-                evader_body.velocity = evader_body.velocity.x - EVADER_SPEED, evader_body.velocity.y
+                evader_body.position = evader_body.position.x - EVADER_MOVE_MAG, evader_body.position.y
             elif event.type == MOUSEBUTTONDOWN and event.button == 1:
                 p = event.pos[X], flipy(event.pos[Y])
                 body = pymunk.Body(10, 100)
@@ -110,8 +112,6 @@ def main():
             elif event.type == KEYDOWN and event.key == K_SPACE:
                 run_physics = not run_physics
 
-        # evader_body.position = evader_body.position.x + 5, evader_body.position.y
-
         if pygame.key.get_mods() & KMOD_SHIFT and pygame.mouse.get_pressed()[0]:
             body = pymunk.Body(10, 10)
             p = pygame.mouse.get_pos()
@@ -121,14 +121,6 @@ def main():
             shape.collision_type = COLLTYPE_BALL
             space.add(body, shape)
             balls.append(shape)
-
-        # Decaying Evader speed
-        # if evader_body.velocity.x > 0:
-        #     evader_body.velocity = evader_body.velocity.x - EVADER_SPEED, evader_body.velocity.y
-        # elif evader_body.velocity.x < 0:
-        #     evader_body.velocity = evader_body.velocity.x + EVADER_SPEED, evader_body.velocity.y
-        # else:
-        #     pass
 
         ## generate random balls
         if i % BALL_EVERY == 0:

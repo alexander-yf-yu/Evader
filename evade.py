@@ -21,15 +21,16 @@ EVADER_DIAMETER = 10
 EVADER_SPEED = 30
 EVADER_MOVE_MAG = 5
 
+RAYCAST_PADDING = 2
+BALL_DIAMETER = 10
+BALL_EVERY = 20
+
 ### Physics collision types
 COLLTYPE_BOUNDS = 0
 COLLTYPE_BALL = 1
 COLLTYPE_EVADE = 2
 COLLTYPE_RAY = 3
 COLLTYPE_WALL = 4
-RAYCAST_PADDING = 5
-BALL_DIAMETER = 15
-BALL_EVERY = 20
 
 def flipy(y):
     """Small hack to convert chipmunk physics to pygame coordinates"""
@@ -51,6 +52,7 @@ def main():
 
     ### Physics stuff
     space = pymunk.Space()
+    space.reset = False
     space.gravity = 0.0, GRAVITY
     space.damping = 0.8
 
@@ -59,23 +61,25 @@ def main():
         pymunk.Segment(space.static_body, (0, 0), (0, WINDOW_HEIGHT), 0),
         pymunk.Segment(space.static_body, (WINDOW_WIDTH, 0), (WINDOW_WIDTH, WINDOW_HEIGHT), 0),
     ]
-
     for s in static:
         s.collision_type = COLLTYPE_WALL
+
     space.add(static)
 
-    ## Balls
+    # Balls
     balls = []
 
-    #evader
+    # Evader
     evader_body = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
     evader_body.position = int(WINDOW_WIDTH / 2), int(WINDOW_HEIGHT / 12)
     evader_shape = pymunk.Circle(evader_body, EVADER_DIAMETER, (0, 0))
     evader_shape.collision_type = COLLTYPE_EVADE
     space.add(evader_body, evader_shape)
 
+    # Collisions
     def pre_solve(arb, space, data):
         print('gameover')
+        space.reset = True
         return True
 
     space.add_collision_handler(COLLTYPE_BALL, COLLTYPE_EVADE).pre_solve = \
@@ -87,8 +91,23 @@ def main():
     evaders = []
     run_physics = True
 
+    # MAIN LOOP
     i = 0
     while running:
+        if space.reset:
+            # Put evader back in the middle
+            evader_body.position = int(WINDOW_WIDTH / 2), int(WINDOW_HEIGHT / 12)
+            # Reset ball counter
+            i = 0
+            # Get rid of balls in space
+            for obj in space.shapes:
+                if obj.collision_type == COLLTYPE_BALL:
+                    space.remove(obj.body)
+                    space.remove(obj)
+            balls = []
+
+            space.reset = False
+
         for event in pygame.event.get():
             if event.type == QUIT:
                 running = False
@@ -122,7 +141,7 @@ def main():
             space.add(body, shape)
             balls.append(shape)
 
-        ## generate random balls
+        # generate random balls
         if i % BALL_EVERY == 0:
             body = pymunk.Body(10, 10)
             x = random.randint(10, WINDOW_WIDTH - BALL_DIAMETER)
@@ -134,20 +153,18 @@ def main():
 
         # TODO by AI
         # update evader_body.position
-        # evader_body.position = evader_body.position.x - 5, evader_body.position.y
+        # evader_body.position = evader_body.position.x - 1, evader_body.position.y
         # OUTPUTS: GO RIGHT, DO NOTHING, GO LEFT
 
-        ### Update physics
+        # Update physics
         if run_physics:
             dt = 1.0 / 60.0
             space.step(dt)
 
-        ### Draw stuff
+        # Draw stuff
         screen.fill(THECOLORS["white"])
 
         # RAYCASTING
-        # create line segments that extend from the evader
-        # make custom collision handlers between segments and balls
 
         ex = evader_body.position.x
         ey = evader_body.position.y
@@ -155,24 +172,26 @@ def main():
         r1 = space.segment_query_first((ex, ey + EVADER_DIAMETER + RAYCAST_PADDING), (ex, ey + 300), 1, pymunk.ShapeFilter())
         r2 = space.segment_query_first((ex, ey + EVADER_DIAMETER + RAYCAST_PADDING), (ex + 20, ey + 295), 1, pymunk.ShapeFilter())
         r3 = space.segment_query_first((ex, ey + EVADER_DIAMETER + RAYCAST_PADDING), (ex - 20, ey + 295), 1, pymunk.ShapeFilter())
-        r4 = space.segment_query_first((ex, ey + EVADER_DIAMETER + RAYCAST_PADDING), (ex + 40, ey + 285), 1, pymunk.ShapeFilter())
-        r5 = space.segment_query_first((ex, ey + EVADER_DIAMETER + RAYCAST_PADDING), (ex - 40, ey + 285), 1, pymunk.ShapeFilter())
-        r6 = space.segment_query_first((ex, ey + EVADER_DIAMETER + RAYCAST_PADDING), (ex + 60, ey + 260), 1, pymunk.ShapeFilter())
-        r7 = space.segment_query_first((ex, ey + EVADER_DIAMETER + RAYCAST_PADDING), (ex - 60, ey + 260), 1, pymunk.ShapeFilter())
+        r4 = space.segment_query_first((ex, ey + EVADER_DIAMETER + RAYCAST_PADDING), (ex + 45, ey + 285), 1, pymunk.ShapeFilter())
+        r5 = space.segment_query_first((ex, ey + EVADER_DIAMETER + RAYCAST_PADDING), (ex - 45, ey + 285), 1, pymunk.ShapeFilter())
+        r6 = space.segment_query_first((ex, ey + EVADER_DIAMETER + RAYCAST_PADDING), (ex + 70, ey + 260), 1, pymunk.ShapeFilter())
+        r7 = space.segment_query_first((ex, ey + EVADER_DIAMETER + RAYCAST_PADDING), (ex - 70, ey + 260), 1, pymunk.ShapeFilter())
 
         raycasts = [r1, r2, r3, r4, r5, r6, r7]
+
+        alphas = []
 
         for ray in raycasts:
             if ray is not None:
                 contact = ray.point
                 p1 = int(ex), int(flipy(ey) - EVADER_DIAMETER - RAYCAST_PADDING)
                 p2 = int(contact.x), int(flipy(contact.y))
-                print(p1, p2)
-                # print("LOOP", id(ray.shape))
+                alphas.append(ray.alpha)
                 pygame.draw.line(screen, THECOLORS["green"], p1, p2, 1)
             else:
-                # print("None")
-                pass
+                alphas.append(1.0)
+
+        print(alphas)
 
         for ball in balls[:]:
             v = ball.body.position

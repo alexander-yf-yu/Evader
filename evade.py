@@ -12,7 +12,6 @@ import pymunk
 from pymunk import Vec2d
 
 X, Y = 0, 1
-
 WINDOW_HEIGHT = 600
 WINDOW_WIDTH = 300
 GRAVITY = -250.00
@@ -32,7 +31,7 @@ COLLTYPE_EVADE = 2
 COLLTYPE_RAY = 3
 COLLTYPE_WALL = 4
 
-def flipy(y):
+def flip_y(y):
     """Small hack to convert chipmunk physics to pygame coordinates"""
     return -y + WINDOW_HEIGHT
 
@@ -120,7 +119,7 @@ def main():
             elif event.type == KEYDOWN and event.key == K_LEFT:
                 evader_body.position = evader_body.position.x - EVADER_MOVE_MAG, evader_body.position.y
             elif event.type == MOUSEBUTTONDOWN and event.button == 1:
-                p = event.pos[X], flipy(event.pos[Y])
+                p = event.pos[X], flip_y(event.pos[Y])
                 body = pymunk.Body(10, 100)
                 body.position = p
                 shape = pymunk.Circle(body, 10, (0, 0))
@@ -134,7 +133,7 @@ def main():
         if pygame.key.get_mods() & KMOD_SHIFT and pygame.mouse.get_pressed()[0]:
             body = pymunk.Body(10, 10)
             p = pygame.mouse.get_pos()
-            mouse_pos = Vec2d(p[X], flipy(p[Y]))
+            mouse_pos = Vec2d(p[X], flip_y(p[Y]))
             body.position = mouse_pos
             shape = pymunk.Circle(body, 10, (0, 0))
             shape.collision_type = COLLTYPE_BALL
@@ -184,8 +183,8 @@ def main():
         for ray in raycasts:
             if ray is not None:
                 contact = ray.point
-                p1 = int(ex), int(flipy(ey) - EVADER_DIAMETER - RAYCAST_PADDING)
-                p2 = int(contact.x), int(flipy(contact.y))
+                p1 = int(ex), int(flip_y(ey) - EVADER_DIAMETER - RAYCAST_PADDING)
+                p2 = int(contact.x), int(flip_y(contact.y))
                 alphas.append(ray.alpha)
                 pygame.draw.line(screen, THECOLORS["green"], p1, p2, 1)
             else:
@@ -195,20 +194,20 @@ def main():
 
         for ball in balls[:]:
             v = ball.body.position
-            if int(flipy(v.y)) > WINDOW_HEIGHT + 100:
+            if int(flip_y(v.y)) > WINDOW_HEIGHT + 100:
                 space.remove(ball)
                 balls.remove(ball)
                 print("remove")
             else:
                 r = ball.radius
                 rot = ball.body.rotation_vector
-                p = int(v.x), int(flipy(v.y))
+                p = int(v.x), int(flip_y(v.y))
                 p2 = Vec2d(rot.x, -rot.y) * r * 0.9
                 pygame.draw.circle(screen, THECOLORS["blue"], p, int(r), 2)
                 pygame.draw.line(screen, THECOLORS["red"], p, p + p2)
 
         er = evader_shape.radius
-        ep = int(ex), int(flipy(ey))
+        ep = int(ex), int(flip_y(ey))
         if not 0 <= ex <= WINDOW_WIDTH:
             pre_solve(None, space, None)
         else:

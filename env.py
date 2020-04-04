@@ -100,6 +100,7 @@ class EvaderEnv(py_environment.PyEnvironment):
         # initializing list of outputs
         self.alphas = []
         self._state = 0
+        self.left_right = 0
 
         self._action_spec = array_spec.BoundedArraySpec(
             shape=(), dtype=np.int32, minimum=-1, maximum=1, name='action')
@@ -128,6 +129,7 @@ class EvaderEnv(py_environment.PyEnvironment):
 
         # Reset state
         self._state = 0
+        self.left_right = 0
         # Raycasts see nothing when there are no balls,
         # so we initialize as a list of 0s
         new_obs = []
@@ -172,6 +174,8 @@ class EvaderEnv(py_environment.PyEnvironment):
         # OUTPUTS: GO RIGHT, DO NOTHING, GO LEFT
         assert action in [-1, 0, 1]
         self.move_ev(action)
+        if action == 1 or action == -1:
+            self.left_right += 1
 
         # Advancing physics
         dt = 1.0 / 60.0
@@ -247,10 +251,15 @@ class EvaderEnv(py_environment.PyEnvironment):
             pygame.display.set_caption("fps: " + str(self.clock.get_fps()))
 
         self._state += 1
-        # print(self._state)
 
-        if self._episode_ended or self._state >= 500:
-            reward = self._state
+
+        # Rewards Calculation
+        # reward = frames completed - possible crash - num of left_right moves
+        if self._episode_ended:
+            reward = float(self._state - 100 - self.left_right / 100)
+            return ts.termination(np.array(self.alphas, dtype=np.float32), reward)
+        elif self._state >= 500:
+            reward = float(self._state - self.left_right / 100)
             return ts.termination(np.array(self.alphas, dtype=np.float32), reward)
         else:
             return ts.transition(np.array(self.alphas, dtype=np.float32), reward=0.0, discount=1.0)
@@ -263,11 +272,27 @@ class EvaderEnv(py_environment.PyEnvironment):
 
     def action_spec(self):
         return self._action_spec
-    
+
 
 if __name__ == "__main__":
 
     env = EvaderEnv()
+
+    time_step_spec = env.time_step_spec()
+
+    print("discount: " + str(time_step_spec.discount))
+    print("steptype: " + str(time_step_spec.step_type))
+    print("reward: " + str(time_step_spec.reward))
+    print("observation: " + str(time_step_spec.observation))
+
+    print("________________________________________________________")
+
+    time_step = env.reset()
+
+    print("discount: " + str(time_step.discount))
+    print("steptype: " + str(time_step.step_type))
+    print("reward: " + str(time_step.reward))
+    print("observation: " + str(time_step.observation))
 
     utils.validate_py_environment(env, episodes=9)
 

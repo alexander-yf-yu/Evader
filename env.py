@@ -4,10 +4,7 @@ from pygame.color import *
 import random
 
 import pymunk
-from pymunk import Vec2d
 
-import abc
-import tensorflow as tf
 import numpy as np
 
 from tf_agents.specs import array_spec
@@ -103,7 +100,7 @@ class EvaderEnv(py_environment.PyEnvironment):
         self.left_right = 0
 
         self._action_spec = array_spec.BoundedArraySpec(
-            shape=(), dtype=np.int32, minimum=-1, maximum=1, name='action')
+            shape=(), dtype=np.int32, minimum=0, maximum=2, name='action')
 
         self._observation_spec = array_spec.BoundedArraySpec(shape=(NUM_RAYS,),
                                                              dtype=np.float32,
@@ -112,7 +109,10 @@ class EvaderEnv(py_environment.PyEnvironment):
                                                              name='observation')
 
     def move_ev(self, m):
-        self.evader_body.position = self.evader_body.position.x + m * EVADER_MOVE_MAG, self.evader_body.position.y
+        mag = m - 1
+        x = self.evader_body.position.x
+        y = self.evader_body.position.y
+        self.evader_body.position = x + mag * EVADER_MOVE_MAG, y
 
     def _reset(self):
         # Put evader back in the middle
@@ -138,8 +138,7 @@ class EvaderEnv(py_environment.PyEnvironment):
 
         EvaderEnv.episodes += 1
 
-        print(EvaderEnv.episodes)
-        # print(self._observation_spec)
+        # print(EvaderEnv.episodes)
 
         return ts.restart(np.array(new_obs, dtype=np.float32))
 
@@ -172,9 +171,9 @@ class EvaderEnv(py_environment.PyEnvironment):
         # TODO by AI
         # update evader_body.position
         # OUTPUTS: GO RIGHT, DO NOTHING, GO LEFT
-        assert action in [-1, 0, 1]
+        assert action in [0, 1, 2]
         self.move_ev(action)
-        if action == 1 or action == -1:
+        if action == 0 or action == 2:
             self.left_right += 1
 
         # Advancing physics
@@ -298,5 +297,5 @@ if __name__ == "__main__":
 
     # MAIN LOOP
     while True:
-        choice = random.randint(-1, 1)
-        env.step(choice)
+        random_action = random.randint(0, 2)
+        env.step(random_action)

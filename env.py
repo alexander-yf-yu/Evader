@@ -13,15 +13,14 @@ from tf_agents.trajectories import time_step as ts
 from tf_agents.environments import utils
 
 # Pygame settings
-GRAPHICS = False
 WINDOW_HEIGHT = 600
 WINDOW_WIDTH = 300
-GRAVITY = -250.00
+GRAVITY = -200.00
 
 # Evader constants
 EVADER_DIAMETER = 10
 EVADER_SPEED = 30
-EVADER_MOVE_MAG = 1
+EVADER_MOVE_MAG = 3
 
 # Ball constants
 BALL_DIAMETER = 10
@@ -45,6 +44,7 @@ def flip_y(y):
 class EvaderEnv(py_environment.PyEnvironment):
 
     _episode_ended = False
+    graphics = True
     episodes = 0
 
     @staticmethod
@@ -58,7 +58,7 @@ class EvaderEnv(py_environment.PyEnvironment):
         super().__init__()
 
         # Pygame initializations
-        if GRAPHICS:
+        if EvaderEnv.graphics:
             pygame.init()
             self.screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
             self.clock = pygame.time.Clock()
@@ -149,7 +149,7 @@ class EvaderEnv(py_environment.PyEnvironment):
             # Ignore the current action and start a new episode.
             return self.reset()
 
-        if GRAPHICS:
+        if EvaderEnv.graphics:
             for event in pygame.event.get():
                 if event.type == QUIT:
                     pygame.quit()
@@ -180,7 +180,7 @@ class EvaderEnv(py_environment.PyEnvironment):
         dt = 1.0 / 60.0
         self.space.step(dt)
 
-        if GRAPHICS:
+        if EvaderEnv.graphics:
             self.screen.fill(THECOLORS["white"])
 
         # RAYCASTING
@@ -218,7 +218,7 @@ class EvaderEnv(py_environment.PyEnvironment):
                 a = float(ray.alpha)
                 self.alphas.append(a)
                 # self.alphas.append(ray.alpha)
-                if GRAPHICS:
+                if EvaderEnv.graphics:
                     p1 = int(ex), int(flip_y(ey) - EVADER_DIAMETER - RAYCAST_PADDING)
                     p2 = int(contact.x), int(flip_y(contact.y))
                     pygame.draw.line(self.screen, THECOLORS["green"], p1, p2, 1)
@@ -234,12 +234,12 @@ class EvaderEnv(py_environment.PyEnvironment):
                 self.balls.remove(ball)
                 # print("remove")
             else:
-                if GRAPHICS:
+                if EvaderEnv.graphics:
                     r = ball.radius
                     p = int(v.x), int(flip_y(v.y))
                     pygame.draw.circle(self.screen, THECOLORS["blue"], p, int(r), 2)
 
-        if GRAPHICS:
+        if EvaderEnv.graphics:
             er = self.evader_shape.radius
             ep = int(ex), int(flip_y(ey))
             pygame.draw.circle(self.screen, THECOLORS["purple"], ep, int(er), 2)
@@ -254,14 +254,24 @@ class EvaderEnv(py_environment.PyEnvironment):
 
         # Rewards Calculation
         # reward = frames completed - possible crash - num of left_right moves
+
+        # if self._episode_ended:
+        #     reward = float(self._state - 500 - self.left_right / 10000)
+        #     return ts.termination(np.array(self.alphas, dtype=np.float32), reward)
+        # elif self._state >= 500:
+        #     reward = float(self._state - self.left_right / 10000)
+        #     return ts.termination(np.array(self.alphas, dtype=np.float32), reward)
+        # else:
+        #     return ts.transition(np.array(self.alphas, dtype=np.float32), reward=0.0, discount=1.0)
+
         if self._episode_ended:
-            reward = float(self._state - 100 - self.left_right / 100)
-            return ts.termination(np.array(self.alphas, dtype=np.float32), reward)
-        elif self._state >= 500:
-            reward = float(self._state - self.left_right / 100)
-            return ts.termination(np.array(self.alphas, dtype=np.float32), reward)
+            reward = -100.0
+            return ts.termination(np.array(self.alphas, dtype=np.float32), reward=reward)
         else:
-            return ts.transition(np.array(self.alphas, dtype=np.float32), reward=0.0, discount=1.0)
+            reward = 1.0 + sum(self.alphas) / NUM_RAYS
+            if action == 0 or action == 2:
+                reward -= 0.1
+            return ts.transition(np.array(self.alphas, dtype=np.float32), reward=reward, discount=1.0)
 
     def get_info(self):
         pass
@@ -271,6 +281,7 @@ class EvaderEnv(py_environment.PyEnvironment):
 
     def action_spec(self):
         return self._action_spec
+
 
 
 if __name__ == "__main__":

@@ -22,27 +22,30 @@ from tf_agents.utils import common
 
 # suppress warning about GPU usage
 from os import environ
+
 environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 # Hyper parameters
-num_iterations = 250        # @param {type:"integer"}
+num_iterations = 10000  # @param {type:"integer"}
 collect_episodes_per_iteration = 2  # @param {type:"integer"}
-replay_buffer_capacity = 2000   # @param {type:"integer"}
+replay_buffer_capacity = 2000  # @param {type:"integer"}
 
 fc_layer_params = (100,)
 
-learning_rate = 1e-3    # @param {type:"number"}
-log_interval = 25   # @param {type:"integer"}
-num_eval_episodes = 10  # @param {type:"integer"}
+learning_rate = 1e-3  # @param {type:"number"}
+log_interval = 50  # @param {type:"integer"}
+num_eval_episodes = 5  # @param {type:"integer"}
 eval_interval = 50  # @param {type:"integer"}
 
 tf.compat.v1.enable_v2_behavior()
 
-train_env = Env()
-eval_env = Env()
+t_env = Env()
+e_env = Env()
 
-train_env = tf_py_environment.TFPyEnvironment(train_env)
-eval_env = tf_py_environment.TFPyEnvironment(eval_env)
+Env.graphics = False
+
+train_env = tf_py_environment.TFPyEnvironment(t_env)
+eval_env = tf_py_environment.TFPyEnvironment(e_env)
 
 actor_net = actor_distribution_network.ActorDistributionNetwork(
     train_env.observation_spec(),
@@ -64,24 +67,23 @@ tf_agent = reinforce_agent.ReinforceAgent(
 
 tf_agent.initialize()
 
-
 eval_policy = tf_agent.policy
 collect_policy = tf_agent.collect_policy
 
 
 def compute_avg_return(environment, policy, num_episodes=10):
-
     total_return = 0.0
 
     for _ in range(num_episodes):
+
         time_step = environment.reset()
         episode_return = 0.0
 
-    while not time_step.is_last():
-        action_step = policy.action(time_step)
-        time_step = environment.step(action_step.action)
-        episode_return += time_step.reward
-    total_return += episode_return
+        while not time_step.is_last():
+            action_step = policy.action(time_step)
+            time_step = environment.step(action_step.action)
+            episode_return += time_step.reward
+        total_return += episode_return
 
     avg_return = total_return / num_episodes
     return avg_return.numpy()[0]
@@ -95,7 +97,6 @@ replay_buffer = tf_uniform_replay_buffer.TFUniformReplayBuffer(
 
 
 def collect_episode(environment, policy, num_episodes):
-
     episode_counter = 0
     environment.reset()
 
@@ -103,7 +104,8 @@ def collect_episode(environment, policy, num_episodes):
         time_step = environment.current_time_step()
         action_step = policy.action(time_step)
         next_time_step = environment.step(action_step.action)
-        traj = trajectory.from_transition(time_step, action_step, next_time_step)
+        traj = trajectory.from_transition(time_step, action_step,
+                                          next_time_step)
 
         # Add trajectory to the replay buffer
         replay_buffer.add_batch(traj)
@@ -111,7 +113,6 @@ def collect_episode(environment, policy, num_episodes):
         if traj.is_boundary():
             episode_counter += 1
 
-print("about to train")
 
 # Reset the train step
 tf_agent.train_step_counter.assign(0)
@@ -120,7 +121,8 @@ tf_agent.train_step_counter.assign(0)
 avg_return = compute_avg_return(eval_env, tf_agent.policy, num_eval_episodes)
 returns = [avg_return]
 
-print("first eval")
+avg_return1 = compute_avg_return(eval_env, tf_agent.policy, num_eval_episodes)
+returns1 = [avg_return1]
 
 for i in range(num_iterations):
 
@@ -138,14 +140,41 @@ for i in range(num_iterations):
         print('step = {0}: loss = {1}'.format(step, train_loss.loss))
 
     if step % eval_interval == 0:
-        avg_return = compute_avg_return(eval_env, tf_agent.policy, num_eval_episodes)
-        print('step = {0}: Average Return = {1}'.format(step, avg_return))
+        Env.graphics = True
+        avg_return = compute_avg_return(eval_env, tf_agent.policy, 5)
+        print('step = {0}: Greedy Avg Return = {1}'.format(step, avg_return))
         returns.append(avg_return)
+        avg_return1 = compute_avg_return(train_env, tf_agent.collect_policy, 5)
+        print('step = {0}: Collect Avg Return = {1}'.format(step, avg_return1))
+        returns1.append(avg_return)
+        Env.graphics = False
 
-    print(str(i + 1))
+    print(i + 1)
 
-steps = range(0, num_iterations + 1, eval_interval)
-plt.plot(steps, returns)
-plt.ylabel('Average Return')
-plt.xlabel('Step')
-plt.ylim(top=250)
+for i in range(len(returns)):
+    print(str(i) + ": " + str(returns[i]))
+
+for i in range(len(returns1)):
+    print(str(i) + ": " + str(returns1[i]))
+
+
+# run = input("Do you want to run the model? \ny/n\n")
+#
+# if run == 'y':
+#     Env.graphics = True
+#     compute_avg_return(eval_env, eval_policy, 5)
+# else:
+#     print("model exit")
+
+while True:
+    time_step = eval_env.reset()
+    episode_return = 0.0
+
+    while not time_step.is_last():
+        action_step = eval_policy.action(time_step)
+        time_step = eval_env.step(action_step.action)
+        episode_return += time_step.reward
+
+    print(episode_return)
+
+

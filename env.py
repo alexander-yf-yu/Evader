@@ -13,22 +13,42 @@ from tf_agents.trajectories import time_step as ts
 from tf_agents.environments import utils
 
 # Pygame settings
-WINDOW_HEIGHT = 600
-WINDOW_WIDTH = 300
+WINDOW_HEIGHT = 500
+WINDOW_WIDTH = 200
 GRAVITY = -200.00
 
 # Evader constants
 EVADER_DIAMETER = 10
-EVADER_SPEED = 30
 EVADER_MOVE_MAG = 3
 
 # Ball constants
-BALL_DIAMETER = 10
+BALL_DIAMETER = 12
 BALL_EVERY = 20
 
-NUM_RAYS = 7
+# Raycasts
+
 # Prevent Raycasts from ending early on evader
 RAYCAST_PADDING = 2
+
+ray_start = [
+    [-EVADER_DIAMETER - RAYCAST_PADDING,  RAYCAST_PADDING],
+    [-EVADER_DIAMETER + RAYCAST_PADDING, EVADER_DIAMETER - RAYCAST_PADDING],
+    [-RAYCAST_PADDING, EVADER_DIAMETER + RAYCAST_PADDING],
+    [RAYCAST_PADDING, EVADER_DIAMETER + RAYCAST_PADDING],
+    [EVADER_DIAMETER - RAYCAST_PADDING, EVADER_DIAMETER - RAYCAST_PADDING],
+    [EVADER_DIAMETER + RAYCAST_PADDING,  RAYCAST_PADDING]
+]
+
+ray_end = [
+    [-90, 250],
+    [-60, 350],
+    [-20, 400],
+    [20, 400],
+    [60, 350],
+    [90, 250]
+]
+
+NUM_RAYS = len(ray_start)
 
 ### Physics collision types
 COLLTYPE_BOUNDS = 0
@@ -97,7 +117,6 @@ class EvaderEnv(py_environment.PyEnvironment):
         # initializing list of outputs
         self.alphas = []
         self._state = 0
-        self.left_right = 0
 
         self._action_spec = array_spec.BoundedArraySpec(
             shape=(), dtype=np.int32, minimum=0, maximum=2, name='action')
@@ -129,7 +148,6 @@ class EvaderEnv(py_environment.PyEnvironment):
 
         # Reset state
         self._state = 0
-        self.left_right = 0
         # Raycasts see nothing when there are no balls,
         # so we initialize as a list of 0s
         new_obs = []
@@ -154,15 +172,16 @@ class EvaderEnv(py_environment.PyEnvironment):
                 if event.type == QUIT:
                     pygame.quit()
                 elif event.type == KEYDOWN and event.key == K_RIGHT:
-                    self.evader_body.position = self.evader_body.position.x + EVADER_MOVE_MAG, self.evader_body.position.y
+                    self.move_ev(2)
                 elif event.type == KEYDOWN and event.key == K_LEFT:
-                    self.evader_body.position = self.evader_body.position.x - EVADER_MOVE_MAG, self.evader_body.position.y
+                    self.move_ev(0)
+
 
         # generate random balls
         if self._state % BALL_EVERY == 0:
             new_body = pymunk.Body(10, 10)
-            pos = random.randint(10, WINDOW_WIDTH - BALL_DIAMETER)
-            new_body.position = pos, WINDOW_HEIGHT - 20
+            pos = random.randint(0, WINDOW_WIDTH)
+            new_body.position = pos, WINDOW_HEIGHT - BALL_DIAMETER
             new_shape = pymunk.Circle(new_body, BALL_DIAMETER, (0, 0))
             new_shape.collision_type = COLLTYPE_BALL
             self.space.add(new_body, new_shape)
@@ -170,14 +189,11 @@ class EvaderEnv(py_environment.PyEnvironment):
 
         # TODO by AI
         # update evader_body.position
-        # OUTPUTS: GO RIGHT, DO NOTHING, GO LEFT
         assert action in [0, 1, 2]
         self.move_ev(action)
-        if action == 0 or action == 2:
-            self.left_right += 1
 
         # Advancing physics
-        dt = 1.0 / 60.0
+        dt = 1.0 / 30.0
         self.space.step(dt)
 
         if EvaderEnv.graphics:
@@ -187,45 +203,33 @@ class EvaderEnv(py_environment.PyEnvironment):
         ex = self.evader_body.position.x
         ey = self.evader_body.position.y
 
-        r1 = self.space.segment_query_first(
-            (ex, ey + EVADER_DIAMETER + RAYCAST_PADDING), (ex, ey + 300), 1,
-            pymunk.ShapeFilter())
-        r2 = self.space.segment_query_first(
-            (ex, ey + EVADER_DIAMETER + RAYCAST_PADDING), (ex + 20, ey + 295),
-            1, pymunk.ShapeFilter())
-        r3 = self.space.segment_query_first(
-            (ex, ey + EVADER_DIAMETER + RAYCAST_PADDING), (ex - 20, ey + 295),
-            1, pymunk.ShapeFilter())
-        r4 = self.space.segment_query_first(
-            (ex, ey + EVADER_DIAMETER + RAYCAST_PADDING), (ex + 45, ey + 285),
-            1, pymunk.ShapeFilter())
-        r5 = self.space.segment_query_first(
-            (ex, ey + EVADER_DIAMETER + RAYCAST_PADDING), (ex - 45, ey + 285),
-            1, pymunk.ShapeFilter())
-        r6 = self.space.segment_query_first(
-            (ex, ey + EVADER_DIAMETER + RAYCAST_PADDING), (ex + 70, ey + 260),
-            1, pymunk.ShapeFilter())
-        r7 = self.space.segment_query_first(
-            (ex, ey + EVADER_DIAMETER + RAYCAST_PADDING), (ex - 70, ey + 260),
-            1, pymunk.ShapeFilter())
-
-        raycasts = [r1, r2, r3, r4, r5, r6, r7]
         self.alphas = []
 
-        for ray in raycasts:
-            if ray is not None:
-                contact = ray.point
-                a = float(ray.alpha)
+        for i in range(NUM_RAYS):
+            start_x = ex + ray_start[i][0]
+            start_y = ey + ray_start[i][1]
+            start = start_x, start_y
+
+            end_x = ex + ray_end[i][0]
+            end_y = ey + ray_end[i][1]
+            end = end_x, end_y
+
+            r = self.space.segment_query_first(start, end, 1, pymunk.ShapeFilter())
+
+            if r is not None:
+                contact = r.point
+                a = float(r.alpha)
                 self.alphas.append(a)
-                # self.alphas.append(ray.alpha)
                 if EvaderEnv.graphics:
-                    p1 = int(ex), int(flip_y(ey) - EVADER_DIAMETER - RAYCAST_PADDING)
+                    p1 = int(start_x), int(flip_y(start_y))
                     p2 = int(contact.x), int(flip_y(contact.y))
                     pygame.draw.line(self.screen, THECOLORS["green"], p1, p2, 1)
             else:
+                if EvaderEnv.graphics:
+                    p1 = int(start_x), int(flip_y(start_y))
+                    p2 = int(end_x), int(flip_y(end_y))
+                    pygame.draw.line(self.screen, THECOLORS["green"], p1, p2, 1)
                 self.alphas.append(1.0)
-
-        # print(self._observation_spec)
 
         for ball in self.balls[:]:
             v = ball.body.position
@@ -251,27 +255,17 @@ class EvaderEnv(py_environment.PyEnvironment):
 
         self._state += 1
 
-
-        # Rewards Calculation
-        # reward = frames completed - possible crash - num of left_right moves
-
-        # if self._episode_ended:
-        #     reward = float(self._state - 500 - self.left_right / 10000)
-        #     return ts.termination(np.array(self.alphas, dtype=np.float32), reward)
-        # elif self._state >= 500:
-        #     reward = float(self._state - self.left_right / 10000)
-        #     return ts.termination(np.array(self.alphas, dtype=np.float32), reward)
-        # else:
-        #     return ts.transition(np.array(self.alphas, dtype=np.float32), reward=0.0, discount=1.0)
+        space_from_middle = 2 * (abs(int(WINDOW_WIDTH / 2) - ex) / WINDOW_WIDTH)
 
         if self._episode_ended:
             reward = -100.0
-            return ts.termination(np.array(self.alphas, dtype=np.float32), reward=reward)
+            return ts.termination(np.array(self.alphas,dtype=np.float32),
+                                  reward=reward)
         else:
-            reward = 1.0 + sum(self.alphas) / NUM_RAYS
-            if action == 0 or action == 2:
-                reward -= 0.1
-            return ts.transition(np.array(self.alphas, dtype=np.float32), reward=reward, discount=1.0)
+            reward = 1.0 + sum(self.alphas) / NUM_RAYS - space_from_middle
+            return ts.transition(np.array(self.alphas, dtype=np.float32),
+                                 reward=reward,
+                                 discount=1.0)
 
     def get_info(self):
         pass
@@ -281,7 +275,6 @@ class EvaderEnv(py_environment.PyEnvironment):
 
     def action_spec(self):
         return self._action_spec
-
 
 
 if __name__ == "__main__":
@@ -304,9 +297,11 @@ if __name__ == "__main__":
     print("reward: " + str(time_step.reward))
     print("observation: " + str(time_step.observation))
 
-    utils.validate_py_environment(env, episodes=9)
+    # utils.validate_py_environment(env, episodes=9)
 
     # MAIN LOOP
     while True:
         random_action = random.randint(0, 2)
-        env.step(random_action)
+        time_step = env.step(1)
+        # print("reward: " + str(time_step.reward))
+        # print("observation: " + str(time_step.observation))

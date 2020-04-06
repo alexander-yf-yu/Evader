@@ -26,13 +26,13 @@ from os import environ
 environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 # Hyper parameters
-num_iterations = 10000  # @param {type:"integer"}
+num_iterations = 1000  # @param {type:"integer"}
 collect_episodes_per_iteration = 2  # @param {type:"integer"}
 replay_buffer_capacity = 2000  # @param {type:"integer"}
 
-fc_layer_params = (100,)
+fc_layer_params = (50,)
 
-learning_rate = 1e-3  # @param {type:"number"}
+learning_rate = 0.01  # @param {type:"number"}
 log_interval = 50  # @param {type:"integer"}
 num_eval_episodes = 5  # @param {type:"integer"}
 eval_interval = 50  # @param {type:"integer"}
@@ -117,12 +117,10 @@ def collect_episode(environment, policy, num_episodes):
 # Reset the train step
 tf_agent.train_step_counter.assign(0)
 
-# Evaluate the agent's policy once before training.
-avg_return = compute_avg_return(eval_env, tf_agent.policy, num_eval_episodes)
-returns = [avg_return]
+greedy = []
+collect = []
 
-avg_return1 = compute_avg_return(eval_env, tf_agent.policy, num_eval_episodes)
-returns1 = [avg_return1]
+print("Beginning Training...")
 
 for i in range(num_iterations):
 
@@ -141,21 +139,26 @@ for i in range(num_iterations):
 
     if step % eval_interval == 0:
         Env.graphics = True
+        print("Policy Evaluation:")
+        print("Evaluating Greedy Policy")
         avg_return = compute_avg_return(eval_env, tf_agent.policy, 5)
         print('step = {0}: Greedy Avg Return = {1}'.format(step, avg_return))
-        returns.append(avg_return)
+        greedy.append(avg_return)
+        print("Evaluating Collection Policy")
         avg_return1 = compute_avg_return(train_env, tf_agent.collect_policy, 5)
         print('step = {0}: Collect Avg Return = {1}'.format(step, avg_return1))
-        returns1.append(avg_return)
+        collect.append(avg_return)
+        print("Resuming Training")
         Env.graphics = False
 
     print(i + 1)
 
-for i in range(len(returns)):
-    print(str(i) + ": " + str(returns[i]))
 
-for i in range(len(returns1)):
-    print(str(i) + ": " + str(returns1[i]))
+for i in range(len(greedy)):
+    print(str(i) + ": " + str(greedy[i]))
+
+for i in range(len(collect)):
+    print(str(i) + ": " + str(collect[i]))
 
 
 # run = input("Do you want to run the model? \ny/n\n")
@@ -166,15 +169,18 @@ for i in range(len(returns1)):
 # else:
 #     print("model exit")
 
+pol = collect_policy
+
 while True:
+    Env.graphics = True
     time_step = eval_env.reset()
     episode_return = 0.0
 
     while not time_step.is_last():
-        action_step = eval_policy.action(time_step)
+        action_step = pol.action(time_step)
         time_step = eval_env.step(action_step.action)
         episode_return += time_step.reward
 
-    print(episode_return)
+    print(episode_return.numpy()[0])
 
 

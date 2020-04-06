@@ -30,9 +30,9 @@ num_iterations = 1000  # @param {type:"integer"}
 collect_episodes_per_iteration = 2  # @param {type:"integer"}
 replay_buffer_capacity = 2000  # @param {type:"integer"}
 
-fc_layer_params = (50,)
+fc_layer_params = (100,)
 
-learning_rate = 0.01  # @param {type:"number"}
+learning_rate = 0.001  # @param {type:"number"}
 log_interval = 50  # @param {type:"integer"}
 num_eval_episodes = 5  # @param {type:"integer"}
 eval_interval = 50  # @param {type:"integer"}

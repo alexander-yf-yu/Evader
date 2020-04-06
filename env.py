@@ -23,7 +23,7 @@ EVADER_MOVE_MAG = 3
 
 # Ball constants
 BALL_DIAMETER = 12
-BALL_EVERY = 20
+BALL_EVERY = 10
 
 # Raycasts
 
@@ -114,6 +114,7 @@ class EvaderEnv(py_environment.PyEnvironment):
 
         # List of evaders in case of parallel training
         self.evaders = []
+
         # initializing list of outputs
         self.alphas = []
         self._state = 0
@@ -148,6 +149,7 @@ class EvaderEnv(py_environment.PyEnvironment):
 
         # Reset state
         self._state = 0
+
         # Raycasts see nothing when there are no balls,
         # so we initialize as a list of 0s
         new_obs = []
@@ -155,8 +157,6 @@ class EvaderEnv(py_environment.PyEnvironment):
             new_obs.append(1.0)
 
         EvaderEnv.episodes += 1
-
-        # print(EvaderEnv.episodes)
 
         return ts.restart(np.array(new_obs, dtype=np.float32))
 
@@ -175,7 +175,6 @@ class EvaderEnv(py_environment.PyEnvironment):
                     self.move_ev(2)
                 elif event.type == KEYDOWN and event.key == K_LEFT:
                     self.move_ev(0)
-
 
         # generate random balls
         if self._state % BALL_EVERY == 0:

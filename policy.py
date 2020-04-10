@@ -4,6 +4,7 @@ from __future__ import print_function
 
 from env import EvaderEnv as Env
 import tensorflow as tf
+import json
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -11,7 +12,6 @@ import numpy as np
 
 from tf_agents.agents.reinforce import reinforce_agent
 from tf_agents.drivers import dynamic_step_driver
-from tf_agents.environments import suite_gym
 from tf_agents.environments import tf_py_environment
 from tf_agents.eval import metric_utils
 from tf_agents.metrics import tf_metrics
@@ -30,10 +30,9 @@ num_iterations = 1000  # @param {type:"integer"}
 collect_episodes_per_iteration = 2  # @param {type:"integer"}
 replay_buffer_capacity = 2000  # @param {type:"integer"}
 
-fc_layer_params = (100,)
+fc_layer_params = (200, 100)
 
 learning_rate = 0.001  # @param {type:"number"}
-log_interval = 50  # @param {type:"integer"}
 num_eval_episodes = 5  # @param {type:"integer"}
 eval_interval = 50  # @param {type:"integer"}
 
@@ -72,6 +71,7 @@ collect_policy = tf_agent.collect_policy
 
 
 def compute_avg_return(environment, policy, num_episodes=10):
+
     total_return = 0.0
 
     for _ in range(num_episodes):
@@ -120,9 +120,12 @@ tf_agent.train_step_counter.assign(0)
 greedy = []
 collect = []
 
+print("Pre-training demo:")
+compute_avg_return(eval_env, tf_agent.policy, 5)
+
 print("Beginning Training...")
 
-for i in range(num_iterations):
+for _ in range(num_iterations):
 
     # Collect a few episodes using collect_policy and save to the replay buffer.
     collect_episode(train_env, tf_agent.collect_policy, collect_episodes_per_iteration)
@@ -134,53 +137,38 @@ for i in range(num_iterations):
 
     step = tf_agent.train_step_counter.numpy()
 
-    if step % log_interval == 0:
-        print('step = {0}: loss = {1}'.format(step, train_loss.loss))
+    print("Training episode: {0}".format(step))
 
     if step % eval_interval == 0:
         Env.graphics = True
-        print("Policy Evaluation:")
-        print("Evaluating Greedy Policy")
-        avg_return = compute_avg_return(eval_env, tf_agent.policy, 5)
-        print('step = {0}: Greedy Avg Return = {1}'.format(step, avg_return))
-        greedy.append(avg_return)
-        print("Evaluating Collection Policy")
-        avg_return1 = compute_avg_return(train_env, tf_agent.collect_policy, 5)
-        print('step = {0}: Collect Avg Return = {1}'.format(step, avg_return1))
-        collect.append(avg_return)
-        print("Resuming Training")
+        print("___Policy Evaluation___")
+        print('step = {0}: loss = {1}'.format(step, train_loss.loss))
+        print("Evaluating Greedy Policy...")
+        avg_greedy = compute_avg_return(eval_env, tf_agent.policy, 5)
+        print('step = {0}: Greedy Avg Return = {1}'.format(step, avg_greedy))
+        greedy.append(avg_greedy)
+        print("Evaluating Collection Policy...")
+        avg_collect = compute_avg_return(train_env, tf_agent.collect_policy, 5)
+        print('step = {0}: Collection Avg Return = {1}'.format(step, avg_collect))
+        collect.append(avg_greedy)
+        print("___Resuming Training___")
         Env.graphics = False
 
-    print(i + 1)
+        # Breakout of training if reward > 1500
+        if avg_greedy > 1500:
+            break
 
 
+tf_agent.train_step_counter.assign(0)
+
+# Data
+print("\nTotal training episodes: {0}".format(step))
+
+print("\nPolicy Rewards: ")
 for i in range(len(greedy)):
-    print(str(i) + ": " + str(greedy[i]))
+    episode = (i + 1) * eval_interval
+    print("Greedy at episode {0}: reward = {1}".format(episode, greedy[i]))
+    print("Collection at episode {0}: reward = {1}".format(episode, collect[i]))
 
-for i in range(len(collect)):
-    print(str(i) + ": " + str(collect[i]))
-
-
-# run = input("Do you want to run the model? \ny/n\n")
-#
-# if run == 'y':
-#     Env.graphics = True
-#     compute_avg_return(eval_env, eval_policy, 5)
-# else:
-#     print("model exit")
-
-pol = collect_policy
-
-while True:
-    Env.graphics = True
-    time_step = eval_env.reset()
-    episode_return = 0.0
-
-    while not time_step.is_last():
-        action_step = pol.action(time_step)
-        time_step = eval_env.step(action_step.action)
-        episode_return += time_step.reward
-
-    print(episode_return.numpy()[0])
 
 

@@ -23,13 +23,13 @@ EVADER_MOVE_MAG = 3
 
 # Ball constants
 BALL_DIAMETER = 12
-BALL_EVERY = 10
+BALL_EVERY = 20
 
-# Raycasts
-
+# ___Raycasts___
 # Prevent Raycasts from ending early on evader
 RAYCAST_PADDING = 2
 
+# List of ray starting points relative to evader body position
 ray_start = [
     [-EVADER_DIAMETER - RAYCAST_PADDING,  RAYCAST_PADDING],
     [-EVADER_DIAMETER + RAYCAST_PADDING, EVADER_DIAMETER - RAYCAST_PADDING],
@@ -39,6 +39,7 @@ ray_start = [
     [EVADER_DIAMETER + RAYCAST_PADDING,  RAYCAST_PADDING]
 ]
 
+# List of ray ending points relative to evader body position
 ray_end = [
     [-90, 250],
     [-60, 350],
@@ -48,6 +49,7 @@ ray_end = [
     [90, 250]
 ]
 
+assert len(ray_start) == len(ray_end)
 NUM_RAYS = len(ray_start)
 
 ### Physics collision types
@@ -55,6 +57,7 @@ COLLTYPE_BOUNDS = 0
 COLLTYPE_BALL = 1
 COLLTYPE_EVADE = 2
 COLLTYPE_WALL = 3
+
 
 def flip_y(y):
     """Small hack to convert chipmunk physics to pygame coordinates"""
@@ -64,8 +67,10 @@ def flip_y(y):
 class EvaderEnv(py_environment.PyEnvironment):
 
     _episode_ended = False
-    graphics = True
     episodes = 0
+    # Set to False to run without Pygame
+    graphics = True
+
 
     @staticmethod
     # Collision Resolver
@@ -83,7 +88,7 @@ class EvaderEnv(py_environment.PyEnvironment):
             self.screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
             self.clock = pygame.time.Clock()
 
-        # Physics stuff
+        # Physics Settings
         self.space = pymunk.Space()
         self.space.gravity = 0.0, GRAVITY
         self.space.damping = 0.8
@@ -93,6 +98,7 @@ class EvaderEnv(py_environment.PyEnvironment):
             pymunk.Segment(self.space.static_body, (0, 0), (0, WINDOW_HEIGHT), 0),
             pymunk.Segment(self.space.static_body, (WINDOW_WIDTH, 0), (WINDOW_WIDTH, WINDOW_HEIGHT), 0)
         ]
+
         for s in self.static:
             s.collision_type = COLLTYPE_WALL
 
@@ -150,8 +156,8 @@ class EvaderEnv(py_environment.PyEnvironment):
         # Reset state
         self._state = 0
 
-        # Raycasts see nothing when there are no balls,
-        # so we initialize as a list of 0s
+        # Raycasts are full length when there are no balls,
+        # so we initialize observations as a list of 1.0's
         new_obs = []
         for _ in range(NUM_RAYS):
             new_obs.append(1.0)
@@ -163,7 +169,7 @@ class EvaderEnv(py_environment.PyEnvironment):
     def _step(self, action):
 
         if EvaderEnv._episode_ended:
-            # The last action ended the episode.
+            # The episode ended on the last time step
             # Ignore the current action and start a new episode.
             return self.reset()
 
@@ -186,7 +192,6 @@ class EvaderEnv(py_environment.PyEnvironment):
             self.space.add(new_body, new_shape)
             self.balls.append(new_shape)
 
-        # TODO by AI
         # update evader_body.position
         assert action in [0, 1, 2]
         self.move_ev(action)
@@ -217,6 +222,7 @@ class EvaderEnv(py_environment.PyEnvironment):
 
             if r is not None:
                 contact = r.point
+                # float from zero to one representing raycast length
                 a = float(r.alpha)
                 self.alphas.append(a)
                 if EvaderEnv.graphics:
@@ -246,28 +252,34 @@ class EvaderEnv(py_environment.PyEnvironment):
             er = self.evader_shape.radius
             ep = int(ex), int(flip_y(ey))
             pygame.draw.circle(self.screen, THECOLORS["purple"], ep, int(er), 2)
-
-            # Flip screen
             pygame.display.flip()
             self.clock.tick(50)
             pygame.display.set_caption("fps: " + str(self.clock.get_fps()))
 
         self._state += 1
 
-        space_from_middle = 2 * (abs(int(WINDOW_WIDTH / 2) - ex) / WINDOW_WIDTH)
-
+        # ___Rewards Calculation___
         if self._episode_ended:
+            # The evader hit a wall or ball, it receives -100 reward
             reward = -100.0
-            return ts.termination(np.array(self.alphas,dtype=np.float32),
-                                  reward=reward)
+            return ts.termination(np.array(self.alphas, dtype=np.float32), reward=reward)
         else:
-            reward = 1.0 + sum(self.alphas) / NUM_RAYS - space_from_middle
+            # The evader survived another timestep
+            # reward consists of:
+
+            # distance to middle of screen: greater distance --> lesser reward
+            space_from_middle = 2 * (abs(int(WINDOW_WIDTH / 2) - ex) / WINDOW_WIDTH)
+
+            # average length of raycasts: longer --> greater reward
+            ray_dist = 2 * sum(self.alphas) / NUM_RAYS
+
+            # fixed reward for surviving single timestep
+            time_step_reward = 1.0
+
+            reward = time_step_reward + ray_dist - space_from_middle
             return ts.transition(np.array(self.alphas, dtype=np.float32),
                                  reward=reward,
                                  discount=1.0)
-
-    def get_info(self):
-        pass
 
     def observation_spec(self):
         return self._observation_spec
@@ -283,24 +295,11 @@ if __name__ == "__main__":
     time_step_spec = env.time_step_spec()
 
     print("discount: " + str(time_step_spec.discount))
-    print("steptype: " + str(time_step_spec.step_type))
+    print("step_type: " + str(time_step_spec.step_type))
     print("reward: " + str(time_step_spec.reward))
     print("observation: " + str(time_step_spec.observation))
 
-    print("________________________________________________________")
-
-    time_step = env.reset()
-
-    print("discount: " + str(time_step.discount))
-    print("steptype: " + str(time_step.step_type))
-    print("reward: " + str(time_step.reward))
-    print("observation: " + str(time_step.observation))
-
-    # utils.validate_py_environment(env, episodes=9)
-
-    # MAIN LOOP
+    # Testing environment with random action
     while True:
         random_action = random.randint(0, 2)
-        time_step = env.step(1)
-        # print("reward: " + str(time_step.reward))
-        # print("observation: " + str(time_step.observation))
+        time_step = env.step(random_action)

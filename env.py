@@ -23,7 +23,7 @@ EVADER_MOVE_MAG = 3
 
 # Ball constants
 BALL_DIAMETER = 12
-BALL_EVERY = 20
+BALL_EVERY = 10
 
 # ___Raycasts___
 # Prevent Raycasts from ending early on evader
@@ -272,11 +272,12 @@ class EvaderEnv(py_environment.PyEnvironment):
 
             # average length of raycasts: longer --> greater reward
             ray_dist = 2 * sum(self.alphas) / NUM_RAYS
+            # ray_dist = sum(self.alphas) / NUM_RAYS
 
             # fixed reward for surviving single timestep
             time_step_reward = 1.0
 
-            reward = time_step_reward + ray_dist - space_from_middle
+            reward = time_step_reward + ray_dist
             return ts.transition(np.array(self.alphas, dtype=np.float32),
                                  reward=reward,
                                  discount=1.0)

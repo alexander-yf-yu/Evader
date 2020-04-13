@@ -1,16 +1,14 @@
 import pygame
 from pygame.locals import *
 from pygame.color import *
+
 import random
-
 import pymunk
-
 import numpy as np
 
 from tf_agents.specs import array_spec
 from tf_agents.environments import py_environment
 from tf_agents.trajectories import time_step as ts
-from tf_agents.environments import utils
 
 # Pygame settings
 WINDOW_HEIGHT = 500

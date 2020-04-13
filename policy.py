@@ -5,10 +5,6 @@ from __future__ import print_function
 from env import EvaderEnv as Env
 import tensorflow as tf
 
-import matplotlib
-import matplotlib.pyplot as plt
-import numpy as np
-
 from tf_agents.agents.reinforce import reinforce_agent
 from tf_agents.environments import tf_py_environment
 from tf_agents.networks import actor_distribution_network

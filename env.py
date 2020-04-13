@@ -267,12 +267,8 @@ class EvaderEnv(py_environment.PyEnvironment):
             # The evader survived another timestep
             # reward consists of:
 
-            # distance to middle of screen: greater distance --> lesser reward
-            space_from_middle = 2 * (abs(int(WINDOW_WIDTH / 2) - ex) / WINDOW_WIDTH)
-
             # average length of raycasts: longer --> greater reward
-            ray_dist = 2 * sum(self.alphas) / NUM_RAYS
-            # ray_dist = sum(self.alphas) / NUM_RAYS
+            ray_dist = sum(self.alphas) / NUM_RAYS
 
             # fixed reward for surviving single timestep
             time_step_reward = 1.0

@@ -17,7 +17,6 @@ from tf_agents.trajectories import trajectory
 
 # suppress warning about CPU usage
 from os import environ
-
 environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 BREAKOUT_REWARD = 1500

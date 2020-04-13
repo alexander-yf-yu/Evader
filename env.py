@@ -274,7 +274,7 @@ class EvaderEnv(py_environment.PyEnvironment):
             reward = time_step_reward + ray_dist
             return ts.transition(np.array(self.alphas, dtype=np.float32),
                                  reward=reward,
-                                 discount=1.0)
+                                 discount=0.98)
 
     def observation_spec(self):
         return self._observation_spec

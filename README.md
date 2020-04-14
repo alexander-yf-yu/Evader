@@ -18,7 +18,7 @@ The episode ends when the agent hits either a ball or wanders into
 one of the side walls.
 
 ---
-### Demo
+### Demo Video
 
 [![IMAGE ALT TEXT](http://img.youtube.com/vi/REAGR_nghRY/0.jpg)](http://www.youtube.com/watch?v=REAGR_nghRY "Evader Demo")
 

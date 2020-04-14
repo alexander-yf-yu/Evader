@@ -116,14 +116,3 @@ be changed in the env.py file.
 ### more
 Born out of a casual interest in machine learning, this is my
 first project involving ML!
-
-If you're an **employer**, then please consider appending me to your team!
-
-Otherwise, I am looking for fellow **surfers** that would like to get gnarly
-with me in the beautiful barrels of Vancouver Island!
-
-Otherwise, I am looking for fellow **surfers** so we can ride
-the beautiful barrels of Vancouver Island!
-
-Otherwise, I am looking for fellow **surfers** with who I can
-ride gnarly barrels of Vancouver Island!

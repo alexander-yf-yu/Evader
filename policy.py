@@ -12,8 +12,8 @@ from tf_agents.replay_buffers import tf_uniform_replay_buffer
 from tf_agents.trajectories import trajectory
 
 # suppress warning about CPU usage
-from os import environ
-environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 BREAKOUT_REWARD = 1500
 
@@ -50,11 +50,11 @@ pre_train_checkpoint = tf.train.Checkpoint(actor_net=actor_net,
                                            optimizer=optimizer)
 
 checkpoint_directory = "tmp/training_checkpoints"
-# checkpoint_prefix = os.path.join(checkpoint_directory, "pre_train")
+checkpoint_prefix = os.path.join(checkpoint_directory, "full_train")
 
 manager = tf.train.CheckpointManager(pre_train_checkpoint,
-                                     directory=checkpoint_directory,
-                                     checkpoint_name='iter',
+                                     directory=checkpoint_prefix,
+                                     checkpoint_name='save',
                                      max_to_keep=50)
 
 tf_agent = reinforce_agent.ReinforceAgent(

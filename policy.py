@@ -27,6 +27,7 @@ FC_LAYER_PARAMS = (200, 100)
 learning_rate = 0.001  # @param {type:"number"}
 num_eval_episodes = 5  # @param {type:"integer"}
 eval_interval = 50  # @param {type:"integer"}
+save_interval = 100
 
 tf.compat.v1.enable_v2_behavior()
 
@@ -44,6 +45,17 @@ actor_net = actor_distribution_network.ActorDistributionNetwork(
 
 optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate)
 train_step_counter = tf.compat.v2.Variable(0)
+
+pre_train_checkpoint = tf.train.Checkpoint(actor_net=actor_net,
+                                           optimizer=optimizer)
+
+checkpoint_directory = "tmp/training_checkpoints"
+# checkpoint_prefix = os.path.join(checkpoint_directory, "pre_train")
+
+manager = tf.train.CheckpointManager(pre_train_checkpoint,
+                                     directory=checkpoint_directory,
+                                     checkpoint_name='iter',
+                                     max_to_keep=50)
 
 tf_agent = reinforce_agent.ReinforceAgent(
     train_env.time_step_spec(),
@@ -115,6 +127,8 @@ if __name__ == "__main__":
     pre_train_avg = compute_avg_return(eval_env, tf_agent.policy)
     print("Base return: {0}\n".format(pre_train_avg))
 
+    manager.save()
+
     greedy = []
     collect = []
 
@@ -134,6 +148,9 @@ if __name__ == "__main__":
         step = tf_agent.train_step_counter.numpy()
 
         print("Training episode: {0}".format(step))
+
+        if step % save_interval == 0:
+            manager.save()
 
         if step % eval_interval == 0:
             print("\n___Policy Evaluation___")

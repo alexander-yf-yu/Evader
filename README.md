@@ -34,7 +34,14 @@ This project uses the following libraries in addition to Python 3.7:
 - [tf-agents](https://www.tensorflow.org/agents)
 - [numpy](https://numpy.org/)
 
----
+By cloning the repo to your local machine, you can run:
+
+    pip install -r /path/to/requirements.txt
+
+to install all dependencies, assuming you have python3 and pip
+installed.
+
+------------------------------------------
 
 ### Code
 - Running policy.py initiates an untrained model and trains it.

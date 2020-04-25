@@ -22,7 +22,7 @@ num_iterations = 1000  # @param {type:"integer"}
 collect_episodes_per_iteration = 2  # @param {type:"integer"}
 replay_buffer_capacity = 2000  # @param {type:"integer"}
 
-fc_layer_params = (200, 100)
+FC_LAYER_PARAMS = (200, 100)
 
 learning_rate = 0.001  # @param {type:"number"}
 num_eval_episodes = 5  # @param {type:"integer"}
@@ -33,15 +33,13 @@ tf.compat.v1.enable_v2_behavior()
 t_env = Env()
 e_env = Env()
 
-Env.graphics = False
-
 train_env = tf_py_environment.TFPyEnvironment(t_env)
 eval_env = tf_py_environment.TFPyEnvironment(e_env)
 
 actor_net = actor_distribution_network.ActorDistributionNetwork(
     train_env.observation_spec(),
     train_env.action_spec(),
-    fc_layer_params=fc_layer_params
+    fc_layer_params=FC_LAYER_PARAMS
 )
 
 optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate)
@@ -108,59 +106,61 @@ def collect_episode(environment, policy, num_episodes):
             episode_counter += 1
 
 
-# Reset the train step
-tf_agent.train_step_counter.assign(0)
+# BEGIN TRAINING
+if __name__ == "__main__":
+    # Reset the train step
+    tf_agent.train_step_counter.assign(0)
 
-print("Evaluating base policy:")
-pre_train_avg = compute_avg_return(eval_env, tf_agent.policy)
-print("Base return: {0}\n".format(pre_train_avg))
+    print("Evaluating base policy:")
+    pre_train_avg = compute_avg_return(eval_env, tf_agent.policy)
+    print("Base return: {0}\n".format(pre_train_avg))
 
-greedy = []
-collect = []
+    greedy = []
+    collect = []
 
-print("Beginning Training...")
+    print("Beginning Training...")
 
-for _ in range(num_iterations):
+    for _ in range(num_iterations):
 
-    # Collect a few episodes using collect_policy and save to the replay buffer.
-    collect_episode(train_env, tf_agent.collect_policy,
-                    collect_episodes_per_iteration)
+        # Collect a few episodes using collect_policy and save to the replay buffer.
+        collect_episode(train_env, tf_agent.collect_policy,
+                        collect_episodes_per_iteration)
 
-    # Use data from the buffer and update the agent's network.
-    experience = replay_buffer.gather_all()
-    train_loss = tf_agent.train(experience)
-    replay_buffer.clear()
+        # Use data from the buffer and update the agent's network.
+        experience = replay_buffer.gather_all()
+        train_loss = tf_agent.train(experience)
+        replay_buffer.clear()
 
-    step = tf_agent.train_step_counter.numpy()
+        step = tf_agent.train_step_counter.numpy()
 
-    print("Training episode: {0}".format(step))
+        print("Training episode: {0}".format(step))
 
-    if step % eval_interval == 0:
-        print("\n___Policy Evaluation___")
-        print('step = {0}: loss = {1}'.format(step, train_loss.loss))
-        print("Evaluating Greedy Policy...")
-        avg_greedy = compute_avg_return(eval_env, tf_agent.policy)
-        print('step = {0}: Greedy Avg Return = {1}'.format(step, avg_greedy))
-        greedy.append(avg_greedy)
-        print("Evaluating Collection Policy...")
-        avg_collect = compute_avg_return(train_env, tf_agent.collect_policy)
-        print(
-            'step = {0}: Collection Avg Return = {1}'.format(step, avg_collect))
-        collect.append(avg_greedy)
-        print("___Resuming Training___\n")
+        if step % eval_interval == 0:
+            print("\n___Policy Evaluation___")
+            print('step = {0}: loss = {1}'.format(step, train_loss.loss))
+            print("Evaluating Greedy Policy...")
+            avg_greedy = compute_avg_return(eval_env, tf_agent.policy)
+            print('step = {0}: Greedy Avg Return = {1}'.format(step, avg_greedy))
+            greedy.append(avg_greedy)
+            print("Evaluating Collection Policy...")
+            avg_collect = compute_avg_return(train_env, tf_agent.collect_policy)
+            print(
+                'step = {0}: Collection Avg Return = {1}'.format(step, avg_collect))
+            collect.append(avg_greedy)
+            print("___Resuming Training___\n")
 
-        # Breakout of training if reward > BREAKOUT_REWARD
-        if avg_greedy > BREAKOUT_REWARD:
-            break
+            # Breakout of training if reward > BREAKOUT_REWARD
+            if avg_greedy > BREAKOUT_REWARD:
+                break
 
-train_env.close()
-eval_env.close()
+    train_env.close()
+    eval_env.close()
 
-# Data
-print("\nTotal training episodes: {0}".format(step))
+    # Data
+    print("\nTotal training episodes: {0}".format(step))
 
-print("\nPolicy Rewards: ")
-for i in range(len(greedy)):
-    episode = (i + 1) * eval_interval
-    print("Greedy at episode {0}: reward = {1}".format(episode, greedy[i]))
-    print("Collection at episode {0}: reward = {1}".format(episode, collect[i]))
+    print("\nPolicy Rewards: ")
+    for i in range(len(greedy)):
+        episode = (i + 1) * eval_interval
+        print("Greedy at episode {0}: reward = {1}".format(episode, greedy[i]))
+        print("Collection at episode {0}: reward = {1}".format(episode, collect[i]))

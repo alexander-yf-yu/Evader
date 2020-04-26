@@ -46,7 +46,7 @@ installed.
 ### Code
 - The environment is defined in the file env.py.
 
-- load_model.py can loads up an existing model from tmp/full_train, and
+- load_model.py loads up an existing model from tmp/full_train, and
 checks its performance by stepping through its policy.
 
 - Running train.py creates an untrained model and trains it until it

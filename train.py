@@ -50,7 +50,7 @@ pre_train_checkpoint = tf.train.Checkpoint(actor_net=actor_net,
                                            optimizer=optimizer)
 
 checkpoint_directory = "tmp/training_checkpoints"
-checkpoint_prefix = os.path.join(checkpoint_directory, "full_train")
+checkpoint_prefix = os.path.join(checkpoint_directory, "newly_trained_models")
 
 manager = tf.train.CheckpointManager(pre_train_checkpoint,
                                      directory=checkpoint_prefix,

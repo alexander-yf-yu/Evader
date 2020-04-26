@@ -5,7 +5,7 @@ from train import eval_env, eval_policy, tf_agent, actor_net, optimizer
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-WHICH_TO_RESTORE = 1
+WHICH_TO_RESTORE = 8
 
 checkpoint = tf.train.Checkpoint(actor_net=actor_net, optimizer=optimizer)
 

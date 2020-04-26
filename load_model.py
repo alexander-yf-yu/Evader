@@ -1,22 +1,22 @@
 import tensorflow as tf
-from policy import eval_env, eval_policy, tf_agent, actor_net, optimizer
+from train import eval_env, eval_policy, tf_agent, actor_net, optimizer
 
 # suppress warning about CPU usage
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-TO_RESTORE = 1
+WHICH_TO_RESTORE = 1
 
 checkpoint = tf.train.Checkpoint(actor_net=actor_net, optimizer=optimizer)
 
-checkpoint_directory = "tmp/training_checkpoints/pre_train"
+checkpoint_directory = "tmp/training_checkpoints/full_train"
 
 manager = tf.train.CheckpointManager(checkpoint,
                                      directory=checkpoint_directory,
-                                     checkpoint_name='pre_train',
+                                     checkpoint_name='save',
                                      max_to_keep=20)
 
-restore_path = manager.checkpoints[TO_RESTORE - 1]
+restore_path = manager.checkpoints[WHICH_TO_RESTORE - 1]
 
 checkpoint.restore(restore_path)
 

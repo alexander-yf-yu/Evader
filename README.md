@@ -46,7 +46,7 @@ installed.
 ### Code
 - The environment is defined in the file env.py.
 
-- load_model.py loads up an existing model from tmp/full_train, and
+- Running load_model.py loads up an existing model from tmp/full_train, and
 checks its performance by stepping through its policy.
 
 - Running train.py creates an untrained model and trains it until it
@@ -60,12 +60,12 @@ newly_trained_models directory under tmp.
 So what was my approach to solving this problem?
 > For this project, I used the reinforce-agent, which is
 > provided by the tf-agents library and based on
-> the Policy Gradients algorithm. Without getting down to
-> specifics, the algorithm can be summarized as an
+> the Policy Gradients algorithm. The algorithm is essentially an
 > act and observe strategy, where the agent learns the ideal action to
 > take when given an environment state. Such is the case in many RL
-> algorithms, but PG captures these decisions in the form of
-> probabilities of actions. Over time, the agent learns which decision
+> algorithms, but PG forms a set of probabilities for each possible action
+> which measure the liklihood that the action is going to maximize
+> reward. Over time, the agent learns which decision
 > making policy maximizes the reward it receives. For more information,
 > [this](https://towardsdatascience.com/policy-gradients-in-a-nutshell-8b72f9743c5d)
 > article offers a more detailed view.
